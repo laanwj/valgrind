@@ -822,6 +822,29 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 			if (d->name && VG_(strncmp(d->name, "nouveau", d->name_len)) == 0)
 				FD_SET(fd, &trace_fds);
 		}
+		if (FD_ISSET(fd, &trace_fds) && id == 0x7530)
+		{
+                        unsigned long long *d = (unsigned long long *)args[2];
+                        // in, insize, out, outsize
+                        char *out = (void*)d[2];
+                        unsigned int cmd = *((unsigned int*)out);
+                        // VG_(printf)("Vivante ioctl command %d\n", cmd);
+                        if (d[3] == 320)
+                        {
+                            if (cmd == 49) // gcvHAL_ALLOCATE_VIRTUAL_COMMAND_BUFFER
+                            {
+                                unsigned long long len = *(unsigned long long*)(out + 32 + 0);
+                                unsigned long long logical = *(unsigned long long*)(out + 32 + 16);
+                                // VG_(printf)("New command buffer to track: len %08x at %08x\n", (unsigned int)len, (unsigned int)logical);
+                                mmt_map_region(fd, logical, logical + len, 0, 0, 0);
+                            } else if (cmd == 19) // gcvHAL_COMMIT
+                            {
+                                mmt_bin_write_1('c');
+                                mmt_bin_end();
+                                mmt_bin_sync();
+                            }
+                        }
+		}
 
 		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls ||
 				mmt_trace_nouveau_ioctls || mmt_trace_fglrx_ioctls))

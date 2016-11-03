@@ -24,14 +24,17 @@
 #include "pub_tool_debuginfo.h"
 #include "pub_tool_vkiscnums.h"
 #include "coregrind/pub_core_syscall.h"
+#include "coregrind/pub_core_threadstate.h"
+#include "coregrind/pub_core_stacktrace.h"
 
 #include "mmt_trace_bin.h"
 
+#define NUM_IPS 16
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
+/*
 	const char* filename;
 	UInt line = 0;
-
 	if (VG_(get_filename)(inst_addr, &filename))
 	{
 		VG_(get_linenum)(inst_addr, &line);
@@ -39,6 +42,30 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 	}
 	else
 		VG_(snprintf) (namestr, len, "@%08lx", inst_addr);
+*/
+        //const HChar* description = VG_(describe_IP)(inst_addr, NULL);
+        //VG_(strncpy)(namestr, description, len);
+        // Collect first part of stacktrace
+        Addr ips[NUM_IPS];
+        int num_ips = VG_(get_StackTrace)(VG_(running_tid), ips, NUM_IPS, NULL, NULL, 0);
+        int i;
+        int ofs = 0;
+        len -= 1;
+        for (i=0; i<num_ips && ofs<len; ++i)
+        {
+            //VG_(sprintf(&namestr[i*9], "%08x ", (unsigned int)ips[i]));
+            const HChar* description = VG_(describe_IP)(ips[i], NULL);
+            int l = VG_(strlen)((const char*)description);
+            if ((ofs + l)>=len)
+                break;
+            VG_(strncpy)(&namestr[ofs], description, len - ofs);
+            ofs += l;
+            namestr[ofs++] = '\n';
+        }
+        if (ofs)
+            namestr[ofs-1] = 0;
+        else
+            namestr[0] = 0;
 }
 
 #define print_begin(type) do { \

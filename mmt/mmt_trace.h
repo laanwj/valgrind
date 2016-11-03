@@ -9,7 +9,7 @@
 #define MMT_64BIT
 #endif
 
-//#define MMT_PRINT_FILENAMES
+#define MMT_PRINT_FILENAMES
 #define MMT_DEBUG
 //#define MMT_DEBUG_VERBOSE
 #define MMT_MAX_TRACE_FILES 10
