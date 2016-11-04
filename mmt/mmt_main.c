@@ -33,6 +33,7 @@
 #include "pub_tool_libcfile.h"
 #include "pub_tool_libcprint.h"
 #include "pub_tool_mallocfree.h"
+#include "mmt.h"
 
 #include <fcntl.h>
 
@@ -226,6 +227,7 @@ static void mmt_pre_clo_init(void)
 					 mmt_print_debug_usage);
 
 	VG_(needs_syscall_wrapper) (mmt_pre_syscall, mmt_post_syscall);
+        VG_(needs_client_requests) (mmt_handle_client_request);
 
 	FD_ZERO(&trace_fds);
 }

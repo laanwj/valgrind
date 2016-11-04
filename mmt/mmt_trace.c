@@ -21,6 +21,7 @@
    The GNU General Public License is contained in the file COPYING.
 */
 
+#include "mmt.h"
 #include "mmt_trace.h"
 #include "mmt_fglrx_ioctl.h"
 #include "mmt_nv_ioctl.h"
@@ -81,6 +82,9 @@ static int neg_regions_number;
 
 int all_mem = 0;
 int dumped_process_maps = 0;
+
+// Size of temporary command buffer allocation
+int mmt_tempbuf_maxsize = 65536;
 
 static void *read_process_maps(int *len)
 {
@@ -232,8 +236,8 @@ static maybe_unused void __verify_state(void)
 		mmt_assert(pos1->id > 0);
 
 		/* if it's a real region, it must have a file descriptor */
-		if (pos1->end > 0)
-			mmt_assert(pos1->fd > 0);
+		//if (pos1->end > 0)
+	    //		mmt_assert(pos1->fd > 0);
 
 		pos2 = mmt_mmaps;
 		for (j = 0; j <= mmt_last_region; ++j, ++pos2)
@@ -963,3 +967,36 @@ void mmt_emit_sync_and_wait(void)
 	int ret_sync = *(int *)((void *)buf);
 	mmt_assert2(ret_sync == sync_id, "%d %d", ret_sync, sync_id);
 }
+
+Bool mmt_handle_client_request ( ThreadId tid, UWord* args, UWord* ret)
+{
+   if (!VG_IS_TOOL_USERREQ('M','T',args[0])
+       && VG_USERREQ__GDB_MONITOR_COMMAND   != args[0])
+      return False;
+
+   /* Anything that gets past the above check is one of ours, so we
+      should be able to handle it. */
+   // VG_(printf)("MT request %08x %08x %08x\n", (int)args[0], (int)args[1], (int)args[2]);
+
+   /* default, meaningless return value, unless otherwise set */
+   struct mmt_mmap_data *region;
+   int tmpi;
+   *ret = 0;
+   switch (args[0]) {
+       case _VG_USERREQ__MMT_START_TEMPCMDBUF: // Watch temporary buffer
+           mmt_map_region(0, args[1], args[1] + mmt_tempbuf_maxsize, 0, 0, 0);
+           break;
+       case _VG_USERREQ__MMT_END_TEMPCMDBUF: // Unwatch temporary buffer
+           region = __mmt_bsearch(args[1], &tmpi);
+           if (region) {
+               mmt_unmap_region(region);
+           }
+           break;
+       default:
+          /* Unhandled Helgrind client request! */
+          tl_assert2(0, "unhandled MMT client request 0x%lx",
+                       args[0]);
+   }
+   return True;
+}
+

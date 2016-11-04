@@ -50,3 +50,41 @@ mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LINK = \
 	$(mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_CFLAGS) \
 	$(mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_LDFLAGS)
 endif
+
+#----------------------------------------------------------------------------
+# vgpreload_mmt-<platform>.so
+#----------------------------------------------------------------------------
+
+noinst_PROGRAMS += vgpreload_mmt-@VGCONF_ARCH_PRI@-@VGCONF_OS@.so
+if VGCONF_HAVE_PLATFORM_SEC
+noinst_PROGRAMS += vgpreload_mmt-@VGCONF_ARCH_SEC@-@VGCONF_OS@.so
+endif
+
+if VGCONF_OS_IS_DARWIN
+noinst_DSYMS = $(noinst_PROGRAMS)
+endif
+
+VGPRELOAD_MMT_SOURCES_COMMON = mmt_intercepts.c
+
+vgpreload_mmt_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_SOURCES      = \
+	$(VGPRELOAD_MMT_SOURCES_COMMON)
+vgpreload_mmt_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_CPPFLAGS     = \
+	$(AM_CPPFLAGS_@VGCONF_PLATFORM_PRI_CAPS@)
+vgpreload_mmt_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_CFLAGS       = \
+	$(AM_CFLAGS_PSO_@VGCONF_PLATFORM_PRI_CAPS@)
+vgpreload_mmt_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_DEPENDENCIES =
+vgpreload_mmt_@VGCONF_ARCH_PRI@_@VGCONF_OS@_so_LDFLAGS      = \
+	$(PRELOAD_LDFLAGS_@VGCONF_PLATFORM_PRI_CAPS@)
+
+if VGCONF_HAVE_PLATFORM_SEC
+vgpreload_mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_so_SOURCES      = \
+	$(VGPRELOAD_MMT_SOURCES_COMMON)
+vgpreload_mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_so_CPPFLAGS     = \
+	$(AM_CPPFLAGS_@VGCONF_PLATFORM_SEC_CAPS@)
+vgpreload_mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_so_CFLAGS       = \
+	$(AM_CFLAGS_PSO_@VGCONF_PLATFORM_SEC_CAPS@)
+vgpreload_mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_so_DEPENDENCIES =
+vgpreload_mmt_@VGCONF_ARCH_SEC@_@VGCONF_OS@_so_LDFLAGS      = \
+	$(PRELOAD_LDFLAGS_@VGCONF_PLATFORM_SEC_CAPS@)
+endif
+

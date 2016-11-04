@@ -46,6 +46,8 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs, Sys
 
 void mmt_dump_open(UWord *args, SysRes res);
 
+Bool mmt_handle_client_request ( ThreadId tid, UWord* args, UWord* ret);
+
 struct mmt_mmap_data *__find_mmap_slow(Addr addr);
 
 #define force_inline	inline __attribute__((always_inline))
