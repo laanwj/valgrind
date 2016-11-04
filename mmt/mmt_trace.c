@@ -80,6 +80,49 @@ static int neg_regions_number;
 #define noinline	__attribute__((noinline))
 
 int all_mem = 0;
+int dumped_process_maps = 0;
+
+static void *read_process_maps(int *len)
+{
+#define MAX_MAPS_LEN (1<<16)
+	static char data[MAX_MAPS_LEN];
+	int fd = VG_(fd_open)("/proc/self/maps", VKI_O_RDONLY, 0);
+	if (fd == -1)
+	{
+		*len = 0;
+		return NULL;
+	}
+
+	int curlen = 0;
+	int r;
+	do
+	{
+		r = VG_(read)(fd, data + curlen, MAX_MAPS_LEN - 1 - curlen);
+		if (r > 0)
+			curlen += r;
+	}
+	while (r != 0);
+
+	VG_(close)(fd);
+
+	data[curlen] = 0;
+
+	*len = curlen;
+	return data;
+}
+
+static void dump_process_maps(void)
+{
+	int len;
+	const char *data = read_process_maps(&len);
+	if (len == 0)
+		return;
+
+	mmt_bin_write_1('y');
+	mmt_bin_write_8(1);
+	mmt_bin_write_buffer((const UChar *)data, len);
+	mmt_bin_end();
+}
 
 static maybe_unused void dump_state(void)
 {
@@ -824,6 +867,11 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 		}
 		if (FD_ISSET(fd, &trace_fds) && id == 0x7530)
 		{
+                        if(!dumped_process_maps) // Dump process maps on first ioctl, galcore must be loaded
+                        {
+                            dump_process_maps();
+                            dumped_process_maps = 1;
+                        }
                         unsigned long long *d = (unsigned long long *)args[2];
                         // in, insize, out, outsize
                         char *out = (void*)d[2];
